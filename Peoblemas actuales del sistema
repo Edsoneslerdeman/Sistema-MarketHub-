@@ -1,0 +1,5 @@
+## Problemas conocidos
+Actualmente el sistema presenta un problema en el cálculo y visualización del cambio durante el proceso de venta. 
+Por ejemplo, si el cliente entrega 100 Bs y el total de la compra es de 60 Bs, el sistema debería mostrar un cambio de 40 Bs. Sin embargo, en algunos casos la interfaz muestra un valor de 0.00 Bs.
+Asimismo, en el módulo de reportes los cambios registrados no reflejan correctamente el monto entregado al cliente, mostrando valores inconsistentes.
+Este problema fue identificado durante la fase de pruebas del sistema y se encuentra en proceso de corrección.
