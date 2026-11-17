@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Reportes Analíticos y Cierre{% endblock %}
+
+{% block content %}
+<div class="p-8 space-y-6">
+
+  <!-- Encabezado y Filtros -->
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div>
+      <h2 class="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+        <span>📊</span> Reportes Analíticos y Cierre Diario
+      </h2>
+      <p class="text-xs text-slate-500 font-medium">Indicadores clave de rendimiento, ventas por método e ingresos netos auditados.</p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <a href="{{ url_for('exportar_ventas', fecha_inicio=fecha_inicio, fecha_fin=fecha_fin) }}"
+         class="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+        <span>📥</span> Descargar Datos CSV
+      </a>
+    </div>
+  </div>
+
+  <!-- Selector de Rango de Fechas -->
+  <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+    <form method="GET" action="{{ url_for('vista_reportes') }}" class="flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2">
+        <label class="text-xs font-bold text-slate-500 uppercase">Período:</label>
+        <input type="date" name="fecha_inicio" value="{{ fecha_inicio }}"
+               class="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-400">hasta</span>
+        <input type="date" name="fecha_fin" value="{{ fecha_fin }}"
+               class="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      </div>
+      <button type="submit"
+              class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition shadow-xs">
+        Actualizar Métricas
+      </button>
+    </form>
+    <span class="text-xs text-slate-500 font-semibold">Período: {{ fecha_inicio }} al {{ fecha_fin }}</span>
+  </div>
+
+  <!-- Tarjetas KPI del Período -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-2xl font-bold">
+        💵
+      </div>
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Ingresos Netos</p>
+        <p class="text-2xl font-black text-emerald-800">Bs. {{ "%.2f"|format(datos_ventas.resumen.ingresos_brutos) }}</p>
+      </div>
+    </div>
+
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-2xl font-bold">
+        🧾
+      </div>
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Transacciones</p>
+        <p class="text-2xl font-black text-slate-800">{{ datos_ventas.resumen.total_transacciones }} ventas</p>
+      </div>
+    </div>
+
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center text-2xl font-bold">
+        🎯
+      </div>
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Ticket Promedio</p>
+        <p class="text-2xl font-black text-slate-800">Bs. {{ "%.2f"|format(datos_ventas.resumen.ticket_promedio) }}</p>
+      </div>
+    </div>
+
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-2xl font-bold">
+        🏆
+      </div>
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Venta Más Alta</p>
+        <p class="text-2xl font-black text-slate-800">Bs. {{ "%.2f"|format(datos_ventas.resumen.venta_maxima) }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rejilla de Dos Columnas: Cierre de Hoy y Ventas por Método -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Tarjeta: Cierre de Caja del Día de Hoy -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div>
+          <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+            <span>🔒</span> Cierre de Caja del Día
+          </h3>
+          <p class="text-xs text-slate-500">Fecha operativa: {{ cierre_hoy.fecha }}</p>
+        </div>
+        <span class="px-3 py-1 bg-emerald-100 text-emerald-800 font-black rounded-lg text-xs">
+          Total: Bs. {{ "%.2f"|format(cierre_hoy.ingresos_totales) }}
+        </span>
+      </div>
+
+      <div class="space-y-3">
+        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Recaudación por Método de Pago:</p>
+        <div class="grid grid-cols-3 gap-3">
+          {% for m in cierre_hoy.por_metodo_pago %}
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+            <span class="text-lg">
+              {% if m.metodo_pago == 'efectivo' %}💵{% elif m.metodo_pago == 'qr' %}📱{% else %}💳{% endif %}
+            </span>
+            <p class="text-[11px] font-bold text-slate-500 uppercase mt-1">{{ m.metodo_pago }}</p>
+            <p class="text-sm font-black text-emerald-800 mt-0.5">Bs. {{ "%.2f"|format(m.subtotal) }}</p>
+            <p class="text-[10px] text-slate-400 font-semibold">{{ m.cantidad }} transac.</p>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="pt-3 border-t border-slate-200">
+          <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Top 5 Productos Hoy:</p>
+          <div class="space-y-1.5 text-xs">
+            {% for p in cierre_hoy.top_5_productos %}
+            <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+              <span class="font-bold text-slate-700 truncate max-w-[220px]">{{ p.nombre }}</span>
+              <div class="flex items-center gap-3">
+                <span class="text-slate-500 font-semibold">{{ p.unidades }} uds</span>
+                <span class="font-black text-emerald-800">Bs. {{ "%.2f"|format(p.ingreso) }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tarjeta: Top 10 Productos Más Vendidos del Período -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col">
+      <div class="pb-3 border-b border-slate-200 mb-4">
+        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+          <span>🏆</span> Top Productos Más Vendidos
+        </h3>
+        <p class="text-xs text-slate-500">Ranking en base a ingresos y rotación de stock en el período seleccionado.</p>
+      </div>
+
+      <div class="flex-1 overflow-y-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px]">
+            <tr>
+              <th class="py-2.5 px-3">#</th>
+              <th class="py-2.5 px-3">Producto</th>
+              <th class="py-2.5 px-3 text-center">Unidades</th>
+              <th class="py-2.5 px-3 text-right">Ingreso Bruto</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for p in top_productos %}
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-2.5 px-3 font-bold text-slate-400 font-mono">{{ loop.index }}</td>
+              <td class="py-2.5 px-3 font-bold text-slate-800">{{ p.nombre }}</td>
+              <td class="py-2.5 px-3 text-center font-bold text-slate-600">{{ p.unidades_vendidas }} uds</td>
+              <td class="py-2.5 px-3 text-right font-black text-emerald-800">Bs. {{ "%.2f"|format(p.ingresos) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

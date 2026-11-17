@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Ventas{% endblock %}
+
+{% block content %}
+<div class="p-8 space-y-6">
+
+  <!-- Encabezado y Filtros -->
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div>
+      <h2 class="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+        <span>📋</span> Historial de Ventas y Comprobantes
+      </h2>
+      <p class="text-xs text-slate-500 font-medium">Registro cronológico de transacciones, reimpresión de tickets y control de caja.</p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <a href="{{ url_for('exportar_ventas', fecha_inicio=fecha_inicio, fecha_fin=fecha_fin) }}"
+         class="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+        <span>📥</span> Exportar a Excel (CSV)
+      </a>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros por Fechas -->
+  <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+    <form method="GET" action="{{ url_for('vista_ventas') }}" class="flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2">
+        <label class="text-xs font-bold text-slate-500 uppercase">Desde:</label>
+        <input type="date" name="fecha_inicio" value="{{ fecha_inicio }}"
+               class="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      </div>
+
+      <div class="flex items-center gap-2">
+        <label class="text-xs font-bold text-slate-500 uppercase">Hasta:</label>
+        <input type="date" name="fecha_fin" value="{{ fecha_fin }}"
+               class="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      </div>
+
+      <button type="submit"
+              class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition shadow-xs">
+        Filtrar Fechas
+      </button>
+    </form>
+
+    <div class="text-xs font-bold text-slate-500">
+      Total Registros: <span class="text-emerald-700 font-black">{{ ventas|length }}</span> ventas
+    </div>
+  </div>
+
+  <!-- Tabla de Ventas -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-xs">
+        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[11px]">
+          <tr>
+            <th class="py-3.5 px-4">Venta #</th>
+            <th class="py-3.5 px-4">Fecha y Hora</th>
+            <th class="py-3.5 px-4">Cajero</th>
+            <th class="py-3.5 px-4">Cliente</th>
+            <th class="py-3.5 px-4 text-center">Método</th>
+            <th class="py-3.5 px-4 text-right">Total</th>
+            <th class="py-3.5 px-4 text-right">Recibido</th>
+            <th class="py-3.5 px-4 text-right">Cambio</th>
+            <th class="py-3.5 px-4 text-center">Estado</th>
+            <th class="py-3.5 px-4 text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% if ventas|length == 0 %}
+          <tr>
+            <td colspan="10" class="py-12 text-center text-slate-400">
+              <p class="text-3xl mb-1">📋</p>
+              <p class="font-bold text-slate-600">No se encontraron ventas en este período</p>
+            </td>
+          </tr>
+          {% endif %}
+
+          {% for v in ventas %}
+          <tr class="hover:bg-slate-50/80 transition {% if v.estado == 'anulada' %}opacity-60 bg-slate-50{% endif %}">
+            <td class="py-3 px-4 font-mono font-bold text-slate-800">#{{ "%05d"|format(v.id) }}</td>
+            <td class="py-3 px-4 font-mono text-slate-500">{{ v.fecha }}</td>
+            <td class="py-3 px-4 font-medium text-slate-700">{{ v.cajero }}</td>
+            <td class="py-3 px-4 font-medium text-slate-600">{{ v.cliente }}</td>
+            <td class="py-3 px-4 text-center">
+              <span class="px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase
+                {% if v.metodo_pago == 'efectivo' %} bg-emerald-100 text-emerald-800
+                {% elif v.metodo_pago == 'qr' %} bg-purple-100 text-purple-800
+                {% else %} bg-blue-100 text-blue-800 {% endif %}">
+                {{ v.metodo_pago }}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-right font-black text-emerald-800 text-sm">Bs. {{ "%.2f"|format(v.total) }}</td>
+            <td class="py-3 px-4 text-right font-bold text-slate-700">Bs. {{ "%.2f"|format(v.monto_pago) }}</td>
+            <td class="py-3 px-4 text-right font-bold {% if v.cambio > 0 %}text-emerald-700{% else %}text-slate-400{% endif %}">
+              Bs. {{ "%.2f"|format(v.cambio) }}
+            </td>
+            <td class="py-3 px-4 text-center">
+              {% if v.estado == 'completada' %}
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">Completada</span>
+              {% else %}
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">Anulada</span>
+              {% endif %}
+            </td>
+            <td class="py-3 px-4 text-center">
+              <div class="inline-flex items-center gap-1.5">
+                <button onclick="verDetalleVenta({{ v.id }})"
+                        title="Ver detalle de productos"
+                        class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[11px] transition">
+                  👁️ Ver
+                </button>
+                <button onclick="imprimirTicketVenta({{ v.id }})"
+                        title="Reimprimir ticket de compra"
+                        class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg font-bold text-[11px] transition">
+                  🖨️ Ticket
+                </button>
+                {% if session.get('usuario', {}).get('rol') == 'admin' and v.estado == 'completada' %}
+                <form action="{{ url_for('anular_venta_web', venta_id=v.id) }}" method="POST" class="inline"
+                      onsubmit="return confirm('¿Anular esta venta? Los productos serán devueltos automáticamente al stock.')">
+                  <button type="submit" title="Anular venta y retornar stock"
+                          class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg font-bold text-[11px] transition">
+                    🚫
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- MODAL: Detalle de Venta (Resuelve el bug)      -->
+<!-- ============================================== -->
+<div id="modal-detalle-venta" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl flex flex-col max-h-[90vh]">
+    <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-200">
+      <div>
+        <h3 id="det-titulo" class="font-black text-slate-800 text-lg">Venta #00000</h3>
+        <p id="det-fecha-cajero" class="text-xs text-slate-500 font-medium"></p>
+      </div>
+      <button onclick="cerrarDetalleVenta()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+    </div>
+
+    <!-- Lista de Productos en la Venta -->
+    <div class="flex-1 overflow-y-auto mb-4">
+      <table class="w-full text-left border-collapse text-xs">
+        <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px]">
+          <tr>
+            <th class="py-2 px-3">Producto</th>
+            <th class="py-2 px-3 text-center">Cant.</th>
+            <th class="py-2 px-3 text-right">P. Unit.</th>
+            <th class="py-2 px-3 text-right">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody id="det-items-body" class="divide-y divide-slate-100">
+          <!-- Cargado con JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Resumen Financiero Claro (Sin distorsiones) -->
+    <div class="p-4 bg-slate-50 rounded-xl space-y-2 text-xs border border-slate-200">
+      <div class="flex justify-between font-medium text-slate-600">
+        <span>Método de Pago:</span>
+        <span id="det-metodo" class="font-bold text-slate-800 uppercase"></span>
+      </div>
+      <div class="flex justify-between font-medium text-slate-600">
+        <span>Monto Recibido del Cliente:</span>
+        <span id="det-recibido" class="font-bold text-slate-800"></span>
+      </div>
+      <div class="flex justify-between font-medium text-slate-600">
+        <span>Cambio Entregado:</span>
+        <span id="det-cambio" class="font-black text-emerald-700"></span>
+      </div>
+      <div class="border-t border-slate-200 pt-2 flex justify-between text-sm font-black text-slate-800">
+        <span>TOTAL COBRADO:</span>
+        <span id="det-total" class="text-emerald-800"></span>
+      </div>
+    </div>
+
+    <div class="mt-4 pt-2 flex gap-2">
+      <button type="button" id="btn-reimprimir-modal"
+              class="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs shadow transition">
+        🖨️ Reimprimir Ticket
+      </button>
+      <button type="button" onclick="cerrarDetalleVenta()"
+              class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- MODAL: Impresión de Ticket Térmico             -->
+<!-- ============================================== -->
+<div id="modal-ticket-print" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+    <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-200">
+      <h3 class="font-bold text-slate-800 text-sm">Ticket Térmico</h3>
+      <button onclick="cerrarModalPrint()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+    </div>
+
+    <div id="contenedor-ticket-impresion" class="ticket-termico mb-4 max-h-80 overflow-y-auto">
+      <pre id="ticket-print-texto" class="font-mono text-xs whitespace-pre-wrap"></pre>
+    </div>
+
+    <div class="flex gap-2">
+      <button onclick="window.print()" class="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs shadow">
+        🖨️ Imprimir
+      </button>
+      <button onclick="cerrarModalPrint()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let ventaSeleccionadaId = null;
+
+  async function verDetalleVenta(id) {
+    ventaSeleccionadaId = id;
+    try {
+      const resp = await fetch(`/api/ventas/${id}`);
+      const v = await resp.json();
+
+      document.getElementById('det-titulo').innerText = `Venta #${String(v.id).padStart(5, '0')}`;
+      document.getElementById('det-fecha-cajero').innerText = `${v.fecha} — Cajero: ${v.cajero} | Cliente: ${v.cliente_nombre || 'General'}`;
+
+      const tbody = document.getElementById('det-items-body');
+      tbody.innerHTML = v.detalle.map(d => `
+        <tr class="hover:bg-slate-50">
+          <td class="py-2 px-3 font-bold text-slate-800">${d.producto}</td>
+          <td class="py-2 px-3 text-center font-bold text-slate-600">${d.cantidad}</td>
+          <td class="py-2 px-3 text-right text-slate-600">Bs. ${d.precio_unit.toFixed(2)}</td>
+          <td class="py-2 px-3 text-right font-black text-emerald-800">Bs. ${d.subtotal.toFixed(2)}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('det-metodo').innerText = v.metodo_pago;
+      document.getElementById('det-recibido').innerText = `Bs. ${v.monto_pago.toFixed(2)}`;
+      document.getElementById('det-cambio').innerText = `Bs. ${v.cambio.toFixed(2)}`;
+      document.getElementById('det-total').innerText = `Bs. ${v.total.toFixed(2)}`;
+
+      document.getElementById('btn-reimprimir-modal').onclick = () => imprimirTicketVenta(id);
+      document.getElementById('modal-detalle-venta').classList.remove('hidden');
+    } catch(e) {
+      alert("Error al cargar detalle de venta.");
+    }
+  }
+
+  function cerrarDetalleVenta() {
+    document.getElementById('modal-detalle-venta').classList.add('hidden');
+  }
+
+  async function imprimirTicketVenta(id) {
+    try {
+      const resp = await fetch(`/api/ventas/${id}/ticket`);
+      const data = await resp.json();
+      document.getElementById('ticket-print-texto').innerText = data.ticket;
+      document.getElementById('modal-ticket-print').classList.remove('hidden');
+    } catch(e) {
+      alert("Error al obtener ticket de venta.");
+    }
+  }
+
+  function cerrarModalPrint() {
+    document.getElementById('modal-ticket-print').classList.add('hidden');
+  }
+</script>
+{% endblock %}

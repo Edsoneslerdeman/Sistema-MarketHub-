@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Personal y Usuarios{% endblock %}
+
+{% block content %}
+<div class="p-8 space-y-6">
+
+  <!-- Encabezado -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+        <span>👤</span> Gestión de Personal y Control de Acceso
+      </h2>
+      <p class="text-xs text-slate-500 font-medium">Administre las cuentas del sistema y asigne roles con permisos específicos.</p>
+    </div>
+
+    <button onclick="abrirModalUsuario()"
+            class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md">
+      <span>➕</span> Nuevo Usuario
+    </button>
+  </div>
+
+  <!-- Tabla de Usuarios -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-xs">
+        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[11px]">
+          <tr>
+            <th class="py-3.5 px-4">ID</th>
+            <th class="py-3.5 px-4">Nombre Completo</th>
+            <th class="py-3.5 px-4">Usuario (Login)</th>
+            <th class="py-3.5 px-4 text-center">Rol Asignado</th>
+            <th class="py-3.5 px-4 text-center">Estado</th>
+            <th class="py-3.5 px-4">Fecha de Alta</th>
+            <th class="py-3.5 px-4 text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for u in usuarios %}
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4 font-mono font-bold text-slate-400">{{ u.id }}</td>
+            <td class="py-3 px-4 font-bold text-slate-800">{{ u.nombre }}</td>
+            <td class="py-3 px-4 font-mono font-semibold text-emerald-800">@{{ u.usuario }}</td>
+            <td class="py-3 px-4 text-center">
+              <span class="px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase
+                {% if u.rol == 'admin' %} bg-amber-100 text-amber-800
+                {% elif u.rol == 'cajero' %} bg-blue-100 text-blue-800
+                {% else %} bg-purple-100 text-purple-800 {% endif %}">
+                {{ u.rol }}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-center">
+              {% if u.activo %}
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">Activo</span>
+              {% else %}
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">Inactivo</span>
+              {% endif %}
+            </td>
+            <td class="py-3 px-4 font-mono text-slate-500">{{ u.creado_en }}</td>
+            <td class="py-3 px-4 text-center">
+              <div class="inline-flex items-center gap-1.5">
+                <button onclick="abrirModalEditarUsuario({{ u.id }}, '{{ u.nombre|replace("'", "\\'") }}', '{{ u.usuario }}', '{{ u.rol }}')"
+                        class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[11px] transition">
+                  ✏️ Editar
+                </button>
+
+                {% if u.id != session.get('usuario', {}).get('id') %}
+                <form action="{{ url_for('cambiar_estado_usuario_web', user_id=u.id) }}" method="POST" class="inline">
+                  <input type="hidden" name="activo" value="{{ '0' if u.activo else '1' }}">
+                  <button type="submit"
+                          class="px-2.5 py-1 rounded-lg font-bold text-[11px] transition
+                          {% if u.activo %} bg-rose-50 hover:bg-rose-100 text-rose-600 {% else %} bg-emerald-50 hover:bg-emerald-100 text-emerald-700 {% endif %}">
+                    {{ 'Desactivar' if u.activo else 'Activar' }}
+                  </button>
+                </form>
+                {% else %}
+                <span class="text-[10px] text-slate-400 font-bold px-2">(Tu cuenta)</span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- MODAL: Crear / Editar Usuario                  -->
+<!-- ============================================== -->
+<div id="modal-usuario" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+    <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-200">
+      <h3 id="modal-usuario-titulo" class="font-bold text-slate-800 text-base">Nuevo Usuario</h3>
+      <button onclick="cerrarModalUsuario()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+    </div>
+
+    <form method="POST" action="{{ url_for('guardar_usuario_web') }}" class="space-y-4">
+      <input type="hidden" name="usuario_id" id="user-id">
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nombre Completo</label>
+        <input type="text" name="nombre" id="user-nombre" required
+               class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nombre de Usuario (Login)</label>
+        <input type="text" name="usuario" id="user-login" required
+               class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Contraseña</label>
+        <input type="password" name="password" id="user-password"
+               placeholder="Mínimo 4 caracteres (dejar vacío para mantener la actual si edita)"
+               class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Rol y Permisos</label>
+        <select name="rol" id="user-rol" required
+                class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <option value="admin">Administrador (Acceso total al sistema)</option>
+          <option value="cajero" selected>Cajero (Punto de venta y pagos)</option>
+          <option value="almacenero">Almacenero (Gestión de inventario y stock)</option>
+        </select>
+      </div>
+
+      <div class="pt-3 flex gap-2">
+        <button type="submit"
+                class="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs shadow-md transition">
+          Guardar Usuario
+        </button>
+        <button type="button" onclick="cerrarModalUsuario()"
+                class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function abrirModalUsuario() {
+    document.getElementById('modal-usuario-titulo').innerText = 'Nuevo Usuario';
+    document.getElementById('user-id').value = '';
+    document.getElementById('user-nombre').value = '';
+    document.getElementById('user-login').value = '';
+    document.getElementById('user-password').value = '';
+    document.getElementById('user-password').required = true;
+    document.getElementById('user-rol').value = 'cajero';
+    document.getElementById('modal-usuario').classList.remove('hidden');
+  }
+
+  function abrirModalEditarUsuario(id, nombre, usuario, rol) {
+    document.getElementById('modal-usuario-titulo').innerText = 'Editar Usuario';
+    document.getElementById('user-id').value = id;
+    document.getElementById('user-nombre').value = nombre;
+    document.getElementById('user-login').value = usuario;
+    document.getElementById('user-password').value = '';
+    document.getElementById('user-password').required = false;
+    document.getElementById('user-rol').value = rol;
+    document.getElementById('modal-usuario').classList.remove('hidden');
+  }
+
+  function cerrarModalUsuario() {
+    document.getElementById('modal-usuario').classList.add('hidden');
+  }
+</script>
+{% endblock %}

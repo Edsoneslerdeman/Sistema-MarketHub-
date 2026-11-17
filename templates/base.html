@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}MarketHub{% endblock %} — Sistema de Gestión</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Estilos del Sistema -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+            },
+            mh: {
+              sidebar: '#1e2d24',
+              hover: '#2a3d32',
+              accent: '#2e6b50',
+              bg: '#f3f6f4'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-mh-bg text-slate-800 flex h-screen overflow-hidden">
+
+  <!-- Sidebar de Navegación -->
+  <aside class="w-64 bg-mh-sidebar text-white flex flex-col flex-shrink-0 shadow-lg">
+    <!-- Encabezado Logo -->
+    <div class="p-5 flex items-center gap-3 border-b border-white/10 bg-black/10">
+      <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-xl shadow-md">
+        🛒
+      </div>
+      <div>
+        <h1 class="font-bold text-lg leading-tight tracking-wide">MarketHub</h1>
+        <p class="text-xs text-emerald-400 font-medium">Sistema Web Minimercado</p>
+      </div>
+    </div>
+
+    <!-- Perfil del Usuario Activo -->
+    {% if session.get('usuario') %}
+    <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+      <div>
+        <p class="text-sm font-semibold text-slate-100">{{ session.get('usuario').get('nombre') }}</p>
+        <span class="inline-block mt-1 px-2 py-0.5 text-[11px] font-bold uppercase rounded-md tracking-wider
+          {% if session.get('usuario').get('rol') == 'admin' %} bg-amber-500/20 text-amber-300 border border-amber-500/30
+          {% elif session.get('usuario').get('rol') == 'cajero' %} bg-blue-500/20 text-blue-300 border border-blue-500/30
+          {% else %} bg-purple-500/20 text-purple-300 border border-purple-500/30 {% endif %}">
+          {{ session.get('usuario').get('rol') }}
+        </span>
+      </div>
+      <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+    </div>
+    {% endif %}
+
+    <!-- Menú de Navegación -->
+    <nav class="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+      {% set rol = session.get('usuario', {}).get('rol', '') %}
+
+      <!-- Punto de Venta (Todos los cajeros y admin) -->
+      {% if rol in ['admin', 'cajero'] %}
+      <a href="{{ url_for('vista_pos') }}"
+         class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition
+         {% if request.path == '/pos' %} bg-mh-accent text-white shadow-md {% else %} text-slate-300 hover:bg-mh-hover hover:text-white {% endif %}">
+        <span class="text-lg">🛒</span>
+        <span>Punto de Venta (POS)</span>
+      </a>
+      {% endif %}
+
+      <!-- Inventario (Admin y Almacenero) -->
+      {% if rol in ['admin', 'almacenero'] %}
+      <a href="{{ url_for('vista_inventario') }}"
+         class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition
+         {% if request.path == '/inventario' %} bg-mh-accent text-white shadow-md {% else %} text-slate-300 hover:bg-mh-hover hover:text-white {% endif %}">
+        <span class="text-lg">📦</span>
+        <span>Inventario y Stock</span>
+      </a>
+      {% endif %}
+
+      <!-- Historial de Ventas (Admin y Cajero) -->
+      {% if rol in ['admin', 'cajero'] %}
+      <a href="{{ url_for('vista_ventas') }}"
+         class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition
+         {% if request.path == '/ventas' %} bg-mh-accent text-white shadow-md {% else %} text-slate-300 hover:bg-mh-hover hover:text-white {% endif %}">
+        <span class="text-lg">📋</span>
+        <span>Historial de Ventas</span>
+      </a>
+      {% endif %}
+
+      <!-- Reportes y Cierre de Caja (Solo Admin) -->
+      {% if rol == 'admin' %}
+      <a href="{{ url_for('vista_reportes') }}"
+         class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition
+         {% if request.path == '/reportes' %} bg-mh-accent text-white shadow-md {% else %} text-slate-300 hover:bg-mh-hover hover:text-white {% endif %}">
+        <span class="text-lg">📊</span>
+        <span>Reportes y Cierre</span>
+      </a>
+
+      <!-- Gestión de Usuarios (Solo Admin) -->
+      <a href="{{ url_for('vista_usuarios') }}"
+         class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition
+         {% if request.path == '/usuarios' %} bg-mh-accent text-white shadow-md {% else %} text-slate-300 hover:bg-mh-hover hover:text-white {% endif %}">
+        <span class="text-lg">👤</span>
+        <span>Personal y Roles</span>
+      </a>
+      {% endif %}
+    </nav>
+
+    <!-- Botón Cerrar Sesión -->
+    <div class="p-3 border-t border-white/10">
+      <a href="{{ url_for('logout') }}"
+         class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-rose-300 hover:bg-rose-500/20 hover:text-rose-100 transition">
+        <span class="text-lg">🚪</span>
+        <span>Cerrar Sesión</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Área de Contenido Principal -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+    <!-- Notificaciones Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="px-6 pt-4 space-y-2">
+        {% for category, message in messages %}
+        <div class="p-4 rounded-xl flex items-center justify-between shadow-sm
+          {% if category == 'error' %} bg-rose-50 text-rose-800 border border-rose-200
+          {% elif category == 'success' %} bg-emerald-50 text-emerald-800 border border-emerald-200
+          {% else %} bg-blue-50 text-blue-800 border border-blue-200 {% endif %}">
+          <div class="flex items-center gap-3">
+            <span class="text-lg">
+              {% if category == 'error' %}⚠️{% elif category == 'success' %}✅{% else %}ℹ️{% endif %}
+            </span>
+            <span class="text-sm font-medium">{{ message }}</span>
+          </div>
+          <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600">&times;</button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
